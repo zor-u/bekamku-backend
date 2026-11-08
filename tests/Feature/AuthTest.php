@@ -26,7 +26,7 @@ class AuthTest extends TestCase
             ->assertJsonStructure(['user' => ['id', 'name', 'email', 'phone'], 'token'])
             ->assertJsonMissingPath('user.password');
 
-        $this->assertDatabaseHas('users', ['email' => 'test@example.com']);
+        $this->assertDatabaseHas('auth_users', ['email' => 'test@example.com']);
     }
 
     public function test_user_can_login_with_valid_credentials(): void
@@ -110,7 +110,7 @@ class AuthTest extends TestCase
         $response->assertCreated()
             ->assertJsonPath('user.email', 'upper.case@example.com');
 
-        $this->assertDatabaseHas('users', ['email' => 'upper.case@example.com']);
+        $this->assertDatabaseHas('auth_users', ['email' => 'upper.case@example.com']);
     }
 
     public function test_register_rejects_duplicate_email(): void

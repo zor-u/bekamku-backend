@@ -16,7 +16,7 @@ Route::prefix('admin')->group(function () {
         'message' => 'Admin login required.',
     ]))->name('admin.login');
 
-    Route::middleware('auth:admin')->group(function () {
+    Route::middleware(['auth:admin', 'staff.active', 'staff.admin'])->group(function () {
         Route::get('/', [AdminController::class, 'me'])->name('admin.dashboard');
         Route::post('/logout', [AdminController::class, 'logout'])->name('admin.logout');
     });

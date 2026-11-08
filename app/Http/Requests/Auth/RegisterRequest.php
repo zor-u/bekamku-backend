@@ -19,8 +19,8 @@ class RegisterRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email:rfc', 'max:255', 'unique:users,email'],
-            'phone' => ['required', 'string', 'min:8', 'max:20', 'regex:/^[0-9]+$/', 'unique:users,phone'],
+            'email' => ['required', 'string', 'lowercase', 'email:rfc', 'max:255', 'unique:auth_users,email'],
+            'phone' => ['required', 'string', 'min:8', 'max:20', 'regex:/^[0-9]+$/', 'unique:auth_users,phone'],
             'password' => ['required', 'string', 'confirmed', 'max:255', Password::defaults()],
         ];
     }
