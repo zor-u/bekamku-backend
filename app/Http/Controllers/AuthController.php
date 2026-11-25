@@ -2,10 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Actions\Auth\RegisterUser;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
-use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,13 +12,15 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    public function register(RegisterRequest $request, RegisterUser $registerUser): JsonResponse
+    public function register(RegisterRequest $request): JsonResponse
     {
-        $result = $registerUser->handle($request->validated());
+        $data = $request->validated();
+
+        $user = User::create($data);
 
         return response()->json([
-            'user' => UserResource::make($result['user']),
-            'token' => $result['token'],
+            'user' => $user,
+            'token' => $user->createToken('register')->plainTextToken,
         ], 201);
     }
 
@@ -28,14 +28,14 @@ class AuthController extends Controller
     {
         $user = User::where('email', $request->validated('email'))->first();
 
-        if (! $user || ! Hash::check($request->validated('password'), $user->password)) {
+        if (! $user || ! Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are incorrect.'],
             ]);
         }
 
         return response()->json([
-            'user' => UserResource::make($user),
+            'user' => $user,
             'token' => $user->createToken('login')->plainTextToken,
         ]);
     }
@@ -49,6 +49,6 @@ class AuthController extends Controller
 
     public function me(Request $request): JsonResponse
     {
-        return response()->json(UserResource::make($request->user())->resolve($request));
+        return response()->json($request->user());
     }
 }

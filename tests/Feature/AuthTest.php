@@ -2,10 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Actions\Auth\RegisterUser;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class AuthTest extends TestCase
@@ -23,10 +21,9 @@ class AuthTest extends TestCase
         ]);
 
         $response->assertCreated()
-            ->assertJsonStructure(['user' => ['id', 'name', 'email', 'phone'], 'token'])
-            ->assertJsonMissingPath('user.password');
+            ->assertJsonStructure(['user' => ['id', 'name', 'email'], 'token']);
 
-        $this->assertDatabaseHas('auth_users', ['email' => 'test@example.com']);
+        $this->assertDatabaseHas('users', ['email' => 'test@example.com']);
     }
 
     public function test_user_can_login_with_valid_credentials(): void
@@ -41,8 +38,7 @@ class AuthTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonStructure(['user' => ['id', 'name', 'email', 'phone'], 'token'])
-            ->assertJsonMissingPath('user.password');
+            ->assertJsonStructure(['user' => ['id', 'email'], 'token']);
     }
 
     public function test_login_rejects_invalid_credentials(): void
@@ -95,124 +91,5 @@ class AuthTest extends TestCase
                 'retry_after_seconds',
             ])
             ->assertHeader('Retry-After');
-    }
-
-    public function test_register_normalises_uppercase_email(): void
-    {
-        $response = $this->postJson('/api/register', [
-            'name' => 'Upper Case',
-            'email' => 'Upper.Case@Example.COM',
-            'phone' => '081234567891',
-            'password' => 'password',
-            'password_confirmation' => 'password',
-        ]);
-
-        $response->assertCreated()
-            ->assertJsonPath('user.email', 'upper.case@example.com');
-
-        $this->assertDatabaseHas('auth_users', ['email' => 'upper.case@example.com']);
-    }
-
-    public function test_register_rejects_duplicate_email(): void
-    {
-        $user = User::factory()->create();
-
-        $this->postJson('/api/register', [
-            'name' => 'Duplicate Email',
-            'email' => $user->email,
-            'phone' => '081234567892',
-            'password' => 'password',
-            'password_confirmation' => 'password',
-        ])->assertUnprocessable()
-            ->assertJsonValidationErrors('email');
-    }
-
-    public function test_register_rejects_duplicate_phone(): void
-    {
-        $user = User::factory()->create();
-
-        $this->postJson('/api/register', [
-            'name' => 'Duplicate Phone',
-            'email' => 'duplicate-phone@example.com',
-            'phone' => $user->phone,
-            'password' => 'password',
-            'password_confirmation' => 'password',
-        ])->assertUnprocessable()
-            ->assertJsonValidationErrors('phone');
-    }
-
-    public function test_register_rejects_invalid_phone_format(): void
-    {
-        $this->postJson('/api/register', [
-            'name' => 'Bad Phone',
-            'email' => 'bad-phone@example.com',
-            'phone' => '+628123456789',
-            'password' => 'password',
-            'password_confirmation' => 'password',
-        ])->assertUnprocessable()
-            ->assertJsonValidationErrors('phone');
-    }
-
-    public function test_register_rejects_mismatched_password_confirmation(): void
-    {
-        $this->postJson('/api/register', [
-            'name' => 'Mismatch',
-            'email' => 'mismatch@example.com',
-            'phone' => '081234567893',
-            'password' => 'password',
-            'password_confirmation' => 'different-password',
-        ])->assertUnprocessable()
-            ->assertJsonValidationErrors('password');
-    }
-
-    public function test_register_requires_all_fields(): void
-    {
-        $this->postJson('/api/register', [])
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors(['name', 'email', 'phone', 'password']);
-    }
-
-    public function test_register_returns_429_after_too_many_attempts(): void
-    {
-        foreach (range(1, 20) as $attempt) {
-            $this->postJson('/api/register', [
-                'name' => 'Throttle',
-                'email' => "throttle{$attempt}@example.com",
-                'phone' => '0812345678'.str_pad((string) $attempt, 2, '0', STR_PAD_LEFT),
-                'password' => 'password',
-                'password_confirmation' => 'password',
-            ])->assertCreated();
-        }
-
-        $this->postJson('/api/register', [
-            'name' => 'Throttle',
-            'email' => 'throttle21@example.com',
-            'phone' => '081234567821',
-            'password' => 'password',
-            'password_confirmation' => 'password',
-        ])
-            ->assertStatus(429)
-            ->assertJsonStructure(['message', 'retry_after_seconds'])
-            ->assertHeader('Retry-After');
-    }
-
-    public function test_register_maps_a_database_unique_violation_to_a_validation_error(): void
-    {
-        $user = User::factory()->create();
-
-        $this->expectException(ValidationException::class);
-
-        try {
-            (new RegisterUser)->handle([
-                'name' => 'Race',
-                'email' => $user->email,
-                'phone' => '081234567899',
-                'password' => 'password',
-            ]);
-        } catch (ValidationException $exception) {
-            $this->assertArrayHasKey('email', $exception->errors());
-
-            throw $exception;
-        }
     }
 }

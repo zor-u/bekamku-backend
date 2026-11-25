@@ -19,22 +19,10 @@ class RegisterRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email:rfc', 'max:255', 'unique:auth_users,email'],
-            'phone' => ['required', 'string', 'min:8', 'max:20', 'regex:/^[0-9]+$/', 'unique:auth_users,phone'],
-            'password' => ['required', 'string', 'confirmed', 'max:255', Password::defaults()],
+            'email' => ['required', 'string', 'lowercase', 'email:rfc', 'max:255', 'unique:users,email'],
+            'phone' => ['required', 'string', 'min:8', 'max:20', 'regex:/^[0-9]+$/', 'unique:users,phone'],
+            'password' => ['required', 'string', 'confirmed', Password::defaults()],
         ];
-    }
-
-    /**
-     * Normalise the email so clients do not have to.
-     */
-    protected function prepareForValidation(): void
-    {
-        $email = $this->input('email');
-
-        $this->merge([
-            'email' => is_string($email) ? strtolower(trim($email)) : $email,
-        ]);
     }
 
     /**
